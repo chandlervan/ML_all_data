@@ -1,0 +1,156 @@
+# 各大任务的评价指标及损失函数
+
+---
+
+[TOC]
+
+## 1. 评价指标 -- 语言模型 -- Perplexity
+
+PPL 主要用于衡量语言模型的好坏，其根据每个词来估计一句话出现的概率， 并用句子长度做 Normalization。
+$$
+PP(s) = P(w_1w_2,...w_N)^{-\frac{1}{N}} \\
+PP(s) = 2 ^{-\frac{1}{N}} \sum log(P(w_i))
+$$
+
+
+## 2. 评价指标 -- 机器翻译 -- BLEU
+
+## BLEU
+
+BLEU 的全称是 Bilingual evaluation understudy，BLEU 的分数取值范围是 0～1，分数越接近1，说明翻译的质量越高。BLEU 主要是基于精确率(Precision)的，下面是 BLEU 的整体公式。
+
+![img](https:////upload-images.jianshu.io/upload_images/20030902-87b764309f9e2530.png?imageMogr2/auto-orient/strip|imageView2/2/w/1098)
+
+BLEU
+
+- BLEU 需要计算译文 1-gram，2-gram，...，N-gram 的精确率，一般 N 设置为 4 即可，公式中的 Pn 指 n-gram 的精确率。
+- Wn 指 n-gram 的权重，一般设为均匀权重，即对于任意 n 都有 Wn = 1/N。
+- BP 是惩罚因子，如果译文的长度小于最短的参考译文，则 BP 小于 1。
+- BLEU 的 1-gram 精确率表示译文忠于原文的程度，而其他 n-gram 表示翻译的流畅程度。
+
+### 2.1 n-gram 精确率计算
+
+假设机器翻译的译文 **C** 和一个参考翻译 **S1** 如下：
+
+```csharp
+C: a cat is on the table
+S1: there is a cat on the table 
+```
+
+则可以计算出 1-gram，2-gram，... 的准确率
+
+![img](https:////upload-images.jianshu.io/upload_images/20030902-3e3343b324025601.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200)
+
+n-gram precision
+
+直接这样子计算 Precision 会存在一些问题，例如：
+
+```csharp
+C: there there there there there
+S1: there is a cat on the table 
+```
+
+这时候机器翻译的结果明显是不正确的，但是其 1-gram 的 Precision 为1，因此 BLEU 一般会使用修正的方法。给定参考译文 **S1**, **S2**, ..., **Sm**，可以计算 **C** 里面 n 元组的 Precision，计算公式如下：
+
+
+
+![img](https://upload-images.jianshu.io/upload_images/20030902-14cdcaf389e0e52f.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200)
+
+n-gram precision
+
+### 惩罚因子
+
+上面介绍了 BLEU 计算 n-gram 精确率的方法， 但是仍然存在一些问题，当机器翻译的长度比较短时，BLEU 得分也会比较高，但是这个翻译是会损失很多信息的，例如：
+
+```csharp
+C: a cat
+S1: there is a cat on the table 
+```
+
+因此需要在 BLEU 分数乘上惩罚因子
+
+![img](https://upload-images.jianshu.io/upload_images/20030902-6f233eaab5f5396d.png?imageMogr2/auto-orient/strip|imageView2/2/w/1018)
+
+BLEU 分数惩罚因子
+
+## 3. 评价指标 -- 文本生成 -- Rouge-N
+
+ROUGE 指标的全称是 (Recall-Oriented Understudy for Gisting Evaluation)，主要是基于召回率 (recall) 的。ROUGE 是一种常用的机器翻译和文章摘要评价指标，由 Chin-Yew Lin 提出，其在论文中提出了 4 种 ROUGE 方法：
+
+- ROUGE-N: 在 N-gram 上计算召回率
+- ROUGE-L: 考虑了机器译文和参考译文之间的最长公共子序列
+- ROUGE-W: 改进了ROUGE-L，用加权的方法计算最长公共子序列
+
+### 3.1 ROUGE-N
+
+ROUGE-N 主要统计 N-gram 上的召回率，对于 N-gram，可以计算得到 ROUGE-N 分数，计算公式如下：
+
+![img](https://upload-images.jianshu.io/upload_images/20030902-e2bd00e5f2b8c980.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200)
+
+ROUGE-N
+
+公式的分母是统计在参考译文中 N-gram 的个数，而分子是统计参考译文与机器译文共有的 N-gram 个数。
+
+```csharp
+C: a cat is on the table
+S1: there is a cat on the table 
+```
+
+上面例子的 ROUGE-1 和 ROUGE-2 分数如下：
+
+![img](https://upload-images.jianshu.io/upload_images/20030902-be74b596b8bd2978.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200)
+
+ROUGE-1 ROUGE-2
+
+如果给定多个 参考译文 **Si**，Chin-Yew Lin 也给出了一种计算方法，假设有 M 个译文 **S1**, ..., **SM**。ROUGE-N 会分别计算机器译文和这些参考译文的 ROUGE-N 分数，并取其最大值，公式如下。这个方法也可以用于 ROUGE-L，ROUGE-W 和 ROUGE-S。
+
+![img](https://upload-images.jianshu.io/upload_images/20030902-b6374f49a0c2e9b7.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200)
+
+ROUGE-N Multi
+
+### 3.2 ROUGE-L
+
+ROUGE-L 中的 L 指最长公共子序列 (longest common subsequence, LCS)，ROUGE-L 计算的时候使用了机器译文 **C** 和参考译文 **S** 的最长公共子序列，计算公式如下：
+
+
+
+：
+
+![img](https://upload-images.jianshu.io/upload_images/20030902-cb34c7bd1c16337a.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200)
+
+ROUGE-L
+
+公式中的 R_LCS 表示召回率，而 P_LCS 表示精确率，F_LCS 就是 ROUGE-L。一般 beta 会设置为很大的数，因此 F_LCS 几乎只考虑了 R_LCS (即召回率)。**注意这里 beta 大，则 F 会更加关注 R，而不是 P，可以看下面的公式。**如果 beta 很大，则 P_LCS 那一项可以忽略不计。
+
+**而不是 P，可以看下面的公式。**如果 beta 很大，则 P_LCS 那一项可以忽略不计。
+
+![img](https://upload-images.jianshu.io/upload_images/20030902-7c479d96e3914ae0.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200)
+
+
+
+
+
+## 4. 损失函数 -- 文本二分类 -- Binary_Crossentropy
+
+
+
+## 5. 损失函数 -- 文本多分类 -- Sparse_Crossentropy(常用）
+
+
+
+## 6. 损失函数 -- 命名实体识别、词性标注 -- CRF
+
+
+
+## 7. 损失函数 -- 阅读理解 -- Sparse_Crossentropy(常用）
+
+
+
+
+
+
+
+
+
+
+
